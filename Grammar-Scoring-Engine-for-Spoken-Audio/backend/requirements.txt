@@ -1,0 +1,28 @@
+# Backend Requirements for Grammar Scoring Engine
+# Core ML & Deep Learning
+torch>=2.0.0
+transformers>=4.36.0
+sentencepiece>=0.1.99
+
+# Speech-to-Text
+openai-whisper>=20240314
+
+# Audio Processing
+librosa>=0.10.0
+soundfile>=0.12.1
+numpy>=1.23.0
+
+# Data Processing
+pandas>=2.0.0
+scikit-learn>=1.3.0
+
+# API Framework
+fastapi>=0.104.0
+uvicorn[standard]>=0.24.0
+python-multipart>=0.0.6
+
+# Utilities
+tqdm>=4.64.0
+joblib>=1.2.0
+matplotlib>=3.6.0
+seaborn>=0.12.0
