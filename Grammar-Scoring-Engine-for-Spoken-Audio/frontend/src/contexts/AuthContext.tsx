@@ -3,6 +3,7 @@ import { createContext, useContext, useState, useEffect, ReactNode } from "react
 interface User {
   name: string;
   email: string;
+  phone?: string;
 }
 
 interface AuthContextType {
@@ -11,6 +12,7 @@ interface AuthContextType {
   signup: (name: string, email: string, password: string) => Promise<{ success: boolean; message?: string }>;
   logout: () => void;
   isAuthenticated: boolean;
+  isAuthLoading: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -25,29 +27,49 @@ export const useAuth = () => {
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
+  const [isAuthLoading, setIsAuthLoading] = useState(true);
+  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "";
 
+  const normalizeEmail = (email: string) => email.trim().toLowerCase();
   useEffect(() => {
     // Check if user is logged in on mount
-    const storedUser = localStorage.getItem("user");
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
+    try {
+      const storedUser = localStorage.getItem("user");
+      if (storedUser) {
+        setUser(JSON.parse(storedUser));
+      }
+    } catch {
+      localStorage.removeItem("user");
+      setUser(null);
+    } finally {
+      setIsAuthLoading(false);
     }
   }, []);
 
   const signup = async (name: string, email: string, password: string) => {
     try {
-      // Mock signup logic - store user in localStorage
-      const users = JSON.parse(localStorage.getItem("users") || "[]");
-      
-      // Check if user already exists
-      if (users.find((u: any) => u.email === email)) {
-        return { success: false, message: "Email already registered" };
-      }
+      const normalizedEmail = normalizeEmail(email);
+      const normalizedName = name.trim();
 
-      // Add new user
-      const newUser = { name, email, password };
-      users.push(newUser);
-      localStorage.setItem("users", JSON.stringify(users));
+      const response = await fetch(`${API_BASE_URL}/api/auth/signup`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name: normalizedName,
+          email: normalizedEmail,
+          password,
+        }),
+      });
+
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        return {
+          success: false,
+          message: payload?.detail || "Signup failed. Please try again.",
+        };
+      }
 
       return { success: true };
     } catch (error) {
@@ -57,17 +79,28 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const login = async (email: string, password: string) => {
     try {
-      // Mock login logic - check against localStorage
-      const users = JSON.parse(localStorage.getItem("users") || "[]");
-      const foundUser = users.find(
-        (u: any) => u.email === email && u.password === password
-      );
+      const normalizedEmail = normalizeEmail(email);
 
-      if (!foundUser) {
-        return { success: false, message: "Invalid email or password" };
+      const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: normalizedEmail,
+          password,
+        }),
+      });
+
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok || !payload?.user) {
+        return {
+          success: false,
+          message: payload?.detail || "Invalid email or password",
+        };
       }
 
-      const userData = { name: foundUser.name, email: foundUser.email };
+      const userData = { name: payload.user.name, email: payload.user.email };
       setUser(userData);
       localStorage.setItem("user", JSON.stringify(userData));
       return { success: true };
@@ -89,6 +122,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         signup,
         logout,
         isAuthenticated: !!user,
+        isAuthLoading,
       }}
     >
       {children}

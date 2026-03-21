@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, Navigate, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Loader2, Sparkles, Mail, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -11,7 +11,7 @@ import { useAuth } from "@/contexts/AuthContext";
 
 const Login = () => {
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const { login, isAuthenticated, isAuthLoading } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [errors, setErrors] = useState<{ email?: string; password?: string; general?: string }>({});
@@ -56,6 +56,10 @@ const Login = () => {
       setErrors({ general: result.message || "Login failed" });
     }
   };
+
+  if (!isAuthLoading && isAuthenticated) {
+    return <Navigate to="/upload" replace />;
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -129,16 +133,6 @@ const Login = () => {
                   {errors.password && (
                     <p className="text-xs text-destructive">{errors.password}</p>
                   )}
-                </div>
-
-                {/* Forgot Password Link */}
-                <div className="flex justify-end">
-                  <Link
-                    to="/forgot-password"
-                    className="text-sm text-primary hover:underline"
-                  >
-                    Forgot password?
-                  </Link>
                 </div>
 
                 {/* Submit Button */}

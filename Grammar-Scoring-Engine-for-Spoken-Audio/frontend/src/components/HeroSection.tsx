@@ -52,26 +52,37 @@ const HeroSection = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.5, duration: 0.6 }}
-          className="flex flex-col sm:flex-row items-center gap-4 justify-center mb-20"
+          className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-3xl mx-auto mb-20"
         >
-          <Link to="/upload">
-            <Button
-              size="lg"
-              className="bg-gradient-to-r from-primary to-secondary text-primary-foreground text-base px-8 py-6 rounded-full hover:opacity-90 transition-all duration-300 shadow-lg shadow-primary/20"
-            >
-              <Upload className="mr-2 w-5 h-5" />
-              Upload Audio
-            </Button>
-          </Link>
-          <Link to="/results">
-            <Button
-              size="lg"
-              variant="outline"
-              className="border-border/60 text-foreground hover:bg-muted/30 text-base px-8 py-6 rounded-full transition-all duration-300"
-            >
-              Try Demo
-            </Button>
-          </Link>
+          <div className="rounded-2xl border border-border/50 bg-card/30 p-5 text-left">
+            <Link to="/upload">
+              <Button
+                size="lg"
+                className="w-full bg-gradient-to-r from-primary to-secondary text-primary-foreground text-base px-8 py-6 rounded-full hover:opacity-90 transition-all duration-300 shadow-lg shadow-primary/20"
+              >
+                <Upload className="mr-2 w-5 h-5" />
+                Upload Audio
+              </Button>
+            </Link>
+            <p className="text-sm text-muted-foreground mt-3">
+              Evaluate my own recording.
+            </p>
+          </div>
+
+          <div className="rounded-2xl border border-border/50 bg-card/30 p-5 text-left">
+            <Link to="/upload?mode=demo">
+              <Button
+                size="lg"
+                variant="outline"
+                className="w-full border-border/60 text-foreground hover:bg-muted/30 text-base px-8 py-6 rounded-full transition-all duration-300"
+              >
+                Try Demo
+              </Button>
+            </Link>
+            <p className="text-sm text-muted-foreground mt-3">
+              See how the system works with sample audio.
+            </p>
+          </div>
         </motion.div>
 
         {/* Microphone Icon */}

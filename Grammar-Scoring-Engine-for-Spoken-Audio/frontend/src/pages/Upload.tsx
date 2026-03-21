@@ -1,32 +1,31 @@
 import { useState, useCallback, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Upload, FileAudio, X, Play, Pause, Loader2, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-
-type PredictResponse = {
-  success: boolean;
-  filename: string;
-  duration: number;
-  transcript: string;
-  score: number;
-  predicted_class: number;
-  confidence: number;
-  processing_time: number;
-};
+import { useAuth } from "@/contexts/AuthContext";
+import { saveAnalysisRecord, type PredictResponse } from "@/lib/analysisHistory";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "";
+
+const DEMO_TRANSCRIPT =
+  "Yesterday I go to market with my friend and we buy some fruits. We was happy because the weather were nice, and then we discussed our plans for next week.";
 
 const UploadPage = () => {
   const [file, setFile] = useState<File | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [isRunningDemo, setIsRunningDemo] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const { user } = useAuth();
+
+  const mode = searchParams.get("mode") === "demo" ? "demo" : "upload";
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -87,26 +86,18 @@ const UploadPage = () => {
       const formData = new FormData();
       formData.append("file", file);
 
-      console.log("Uploading file to API:", file.name);
       const response = await fetch(`${API_BASE_URL}/api/predict`, {
         method: "POST",
         body: formData,
       });
-
-      console.log("API Response Status:", response.status);
-      console.log("API Response Headers:", response.headers);
       
       let payload;
       try {
         payload = await response.json();
       } catch (parseError) {
-        console.error("Failed to parse JSON response:", parseError);
         const text = await response.text();
-        console.log("Raw response text:", text);
         throw new Error(`Failed to parse API response: ${text.substring(0, 100)}`);
       }
-
-      console.log("API Response Payload:", payload);
 
       if (!response.ok) {
         const errorDetail = payload?.detail || payload?.error || "Failed to analyze audio";
@@ -117,14 +108,76 @@ const UploadPage = () => {
         throw new Error("Invalid response format from API");
       }
 
-      console.log("Navigating to results with payload:", payload);
-      navigate("/results", { state: { analysis: payload as PredictResponse } });
+      const analysis = payload as PredictResponse;
+
+      if (user?.email) {
+        try {
+          await saveAnalysisRecord(user.email, analysis);
+        } catch (saveError) {
+          console.error("Failed to save analysis record", saveError);
+        }
+      }
+
+      navigate("/results", { state: { analysis } });
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : "Unexpected error while analyzing audio";
-      console.error("Error during analysis:", errorMsg, error);
       setErrorMessage(errorMsg);
     } finally {
       setIsAnalyzing(false);
+    }
+  };
+
+  const handleRunDemo = async () => {
+    setErrorMessage(null);
+    setIsRunningDemo(true);
+    const startTime = performance.now();
+
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/api/score-text?text=${encodeURIComponent(DEMO_TRANSCRIPT)}`,
+        {
+          method: "POST",
+        }
+      );
+
+      const payload = await response.json();
+      if (!response.ok) {
+        const errorDetail = payload?.detail || payload?.error || "Failed to run demo";
+        throw new Error(errorDetail);
+      }
+
+      const analysis: PredictResponse = {
+        success: true,
+        filename: "demo-sample-audio.wav",
+        duration: 42,
+        transcript: DEMO_TRANSCRIPT,
+        corrected_text: payload.corrected_text,
+        correction_changed: payload.correction_changed,
+        correction_available: payload.correction_available,
+        correction_error: payload.correction_error,
+        errors: payload.errors,
+        suggestions: payload.suggestions,
+        error_summary: payload.error_summary,
+        score: payload.score,
+        predicted_class: payload.predicted_class,
+        confidence: payload.confidence,
+        processing_time: Number(((performance.now() - startTime) / 1000).toFixed(2)),
+      };
+
+      if (user?.email) {
+        try {
+          await saveAnalysisRecord(user.email, analysis);
+        } catch (saveError) {
+          console.error("Failed to save analysis record", saveError);
+        }
+      }
+
+      navigate("/results", { state: { analysis } });
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : "Unexpected error while running demo";
+      setErrorMessage(errorMsg);
+    } finally {
+      setIsRunningDemo(false);
     }
   };
 
@@ -141,13 +194,55 @@ const UploadPage = () => {
             className="text-center max-w-2xl mx-auto mb-10"
           >
             <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-4">
-              <span className="text-foreground">Upload Your </span>
-              <span className="gradient-text">Audio</span>
+              {mode === "demo" ? (
+                <>
+                  <span className="text-foreground">Try </span>
+                  <span className="gradient-text">Demo Analysis</span>
+                </>
+              ) : (
+                <>
+                  <span className="text-foreground">Upload Your </span>
+                  <span className="gradient-text">Audio</span>
+                </>
+              )}
             </h1>
             <p className="text-muted-foreground">
-              Upload your spoken English audio file and let AI analyze your grammar
+              {mode === "demo"
+                ? "See how the system works with sample audio."
+                : "Evaluate your own recording with AI-powered grammar scoring."}
             </p>
           </motion.div>
+
+          {mode === "demo" && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 }}
+              className="max-w-2xl mx-auto mb-8 rounded-2xl border border-border/50 bg-card/40 p-6"
+            >
+              <h2 className="text-lg font-semibold text-foreground mb-2">Quick Demo</h2>
+              <p className="text-sm text-muted-foreground mb-4">
+                This runs a built-in sample transcript so you can preview scoring without uploading a file.
+              </p>
+              <Button
+                onClick={handleRunDemo}
+                disabled={isRunningDemo || isAnalyzing}
+                className="w-full bg-gradient-to-r from-primary to-secondary text-primary-foreground hover:opacity-90 h-11 rounded-xl"
+              >
+                {isRunningDemo ? (
+                  <>
+                    <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                    Running Demo...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="w-5 h-5 mr-2" />
+                    Run Quick Demo
+                  </>
+                )}
+              </Button>
+            </motion.div>
+          )}
 
           {/* Upload Area */}
           <motion.div
@@ -244,7 +339,7 @@ const UploadPage = () => {
                       </div>
                     </div>
 
-                    <Button onClick={handleAnalyze} disabled={isAnalyzing || !file} className="w-full bg-gradient-to-r from-primary to-secondary text-primary-foreground hover:opacity-90 h-12 rounded-xl shadow-lg shadow-primary/20">
+                    <Button onClick={handleAnalyze} disabled={isAnalyzing || isRunningDemo || !file} className="w-full bg-gradient-to-r from-primary to-secondary text-primary-foreground hover:opacity-90 h-12 rounded-xl shadow-lg shadow-primary/20">
                       {isAnalyzing ? (
                         <><Loader2 className="w-5 h-5 mr-2 animate-spin" />Analyzing Speech...</>
                       ) : (
@@ -262,14 +357,20 @@ const UploadPage = () => {
 
             {/* Analyzing overlay */}
             <AnimatePresence>
-              {isAnalyzing && (
+              {(isAnalyzing || isRunningDemo) && (
                 <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
                   <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="rounded-2xl p-12 text-center border border-border/40 bg-card max-w-sm mx-4">
                     <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center animate-pulse">
                       <Loader2 className="w-10 h-10 text-primary animate-spin" />
                     </div>
-                    <h3 className="text-lg font-semibold text-foreground mb-2">AI Analyzing...</h3>
-                    <p className="text-sm text-muted-foreground">Processing your audio with advanced NLP models</p>
+                    <h3 className="text-lg font-semibold text-foreground mb-2">
+                      {isRunningDemo ? "Running Demo..." : "AI Analyzing..."}
+                    </h3>
+                    <p className="text-sm text-muted-foreground">
+                      {isRunningDemo
+                        ? "Scoring sample content to show how the system works"
+                        : "Processing your audio with advanced NLP models"}
+                    </p>
                     <div className="mt-6 flex justify-center gap-1">
                       {[0, 1, 2].map((i) => (
                         <motion.div key={i} animate={{ scale: [1, 1.3, 1] }} transition={{ repeat: Infinity, duration: 0.6, delay: i * 0.2 }} className="w-2 h-2 rounded-full bg-primary" />

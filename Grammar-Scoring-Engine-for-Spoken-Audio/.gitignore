@@ -1,0 +1,21 @@
+# Python virtual environments
+venv/
+.venv/
+
+# Python caches
+__pycache__/
+*.pyc
+
+# Frontend artifacts
+frontend/node_modules/
+frontend/dist/
+
+# Runtime/generated data
+uploads/
+transcripts/
+
+# OS/editor files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

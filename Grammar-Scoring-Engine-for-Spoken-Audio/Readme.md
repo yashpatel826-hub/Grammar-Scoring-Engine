@@ -9,7 +9,7 @@
 
 ---
 
-## � Quick Start
+## Quick Start
 
 ### Prerequisites
 - Python 3.9 or higher
@@ -30,9 +30,10 @@
 
    Or manually:
    ```bash
-   python -m venv venv
-   venv\Scripts\activate
+   python -m venv .venv
+   .venv\Scripts\activate
    pip install -r backend\requirements.txt
+   cd frontend && npm install
    ```
 
 3. **Train the model**
@@ -44,21 +45,18 @@
    python backend\train.py --epochs 20 --batch-size 8
    ```
 
-4. **Start the API server**
+4. **Start the full end-to-end app (frontend + backend)**
    ```bash
    run_server.bat
    ```
-   Or:
-   ```bash
-   python backend\api.py
-   ```
 
-5. **Open the frontend**
-   Open `frontend\index.html` in your browser
+5. **Open the app**
+   - Main app: `http://localhost:8000`
+   - API docs: `http://localhost:8000/docs`
 
 ---
 
-## �📌 Overview
+## Overview
 
 The goal of this project is to build a **Grammar Scoring Engine** that can evaluate the grammatical quality of spoken audio inputs. The model takes a **45–60 second `.wav` audio file** and predicts a **continuous score between 0 and 5**, based on the **MOS Likert Grammar Scale**.
 
@@ -73,7 +71,7 @@ The goal of this project is to build a **Grammar Scoring Engine** that can evalu
 
 ---
 
-## 📂 Project Structure
+## Project Structure
 
 ```
 Grammar-Scoring-Engine-for-Spoken-Audio/
@@ -86,9 +84,10 @@ Grammar-Scoring-Engine-for-Spoken-Audio/
 │   ├── api.py             # FastAPI REST API
 │   └── requirements.txt   # Python dependencies
 ├── frontend/
-│   ├── index.html         # Main HTML page
-│   ├── style.css          # Modern CSS styles
-│   └── app.js             # JavaScript application
+│   ├── src/               # React pages/components
+│   ├── public/            # Static assets
+│   ├── package.json       # Frontend dependencies
+│   └── vite.config.ts     # Vite configuration
 ├── Dataset/
 │   ├── audios/
 │   │   ├── train/         # Training audio files
@@ -178,14 +177,14 @@ with open("audio.wav", "rb") as f:
 
 ---
 
-## 🛠️ Tech Stack
+## Tech Stack
 
 | Component | Technology |
 |-----------|------------|
 | ML Framework | PyTorch + Transformers |
 | ASR | faster-whisper |
 | Backend | FastAPI + Uvicorn |
-| Frontend | Vanilla HTML/CSS/JS |
+| Frontend | React + Vite + TypeScript |
 | Model | DeBERTa-v3-base |
 
 ---
