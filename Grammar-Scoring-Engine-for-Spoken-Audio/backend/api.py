@@ -70,6 +70,63 @@ def get_services():
     return _transcription_service, _scorer, _corrector
 
 
+def build_feedback_payload(score: float, correction_result: Dict[str, Any]) -> Dict[str, Any]:
+    """Merge correction output with score-based fallback guidance."""
+    errors = correction_result.get("errors", []) or []
+    suggestions = correction_result.get("suggestions", []) or []
+    summary = correction_result.get("summary", {"total_errors": 0}) or {"total_errors": 0}
+
+    if summary.get("total_errors", 0) > 0:
+        return {
+            "errors": errors,
+            "suggestions": suggestions,
+            "error_summary": summary,
+        }
+
+    # If no explicit token-level corrections were detected but score is weak,
+    # still provide actionable guidance to avoid an empty feedback section.
+    fallback_suggestions = []
+    if score < 2.0:
+        fallback_suggestions = [
+            "Use shorter, clearer sentences to improve grammatical accuracy.",
+            "Check subject-verb agreement in each sentence.",
+            "Use correct tense consistently throughout your response.",
+            "Review article usage (a, an, the) with countable nouns.",
+        ]
+    elif score < 3.5:
+        fallback_suggestions = [
+            "Reduce repeated words and improve sentence flow.",
+            "Use clearer connectors (because, therefore, however) between ideas.",
+            "Check prepositions and article usage in longer sentences.",
+        ]
+    elif score < 4.0:
+        fallback_suggestions = [
+            "Polish sentence clarity and avoid minor filler phrases.",
+            "Review punctuation and sentence boundaries for smoother delivery.",
+        ]
+
+    if fallback_suggestions:
+        return {
+            "errors": [
+                {
+                    "type": "score_based_feedback",
+                    "explanation": "Your grammar score indicates room for improvement even though no direct text replacements were suggested.",
+                }
+            ],
+            "suggestions": fallback_suggestions,
+            "error_summary": {
+                "total_errors": 1,
+                "score_based_feedback": 1,
+            },
+        }
+
+    return {
+        "errors": [],
+        "suggestions": [],
+        "error_summary": {"total_errors": 0},
+    }
+
+
 # Response models
 class HealthResponse(BaseModel):
     status: str
@@ -245,6 +302,7 @@ async def predict_grammar_score(file: UploadFile = File(...)):
         # Grammar correction
         print("Running grammar correction...")
         correction_result = corrector.correct_text(transcript)
+        feedback = build_feedback_payload(score_result["score"], correction_result)
         print(f"{'='*60}\n")
         
         processing_time = time.time() - start_time
@@ -258,6 +316,9 @@ async def predict_grammar_score(file: UploadFile = File(...)):
             "correction_changed": correction_result["changed"],
             "correction_available": correction_result["available"],
             "correction_error": correction_result["error"],
+            "errors": feedback["errors"],
+            "suggestions": feedback["suggestions"],
+            "error_summary": feedback["error_summary"],
             "score": score_result['score'],
             "predicted_class": score_result['predicted_class'],
             "confidence": score_result['confidence'],
@@ -351,6 +412,7 @@ async def score_text(text: str):
     _, scorer, corrector = get_services()
     result = scorer.score_text(text)
     correction_result = corrector.correct_text(text)
+    feedback = build_feedback_payload(result["score"], correction_result)
     
     return {
         "success": True,
@@ -359,9 +421,9 @@ async def score_text(text: str):
         "correction_changed": correction_result["changed"],
         "correction_available": correction_result["available"],
         "correction_error": correction_result["error"],
-        "errors": correction_result.get("errors", []),
-        "suggestions": correction_result.get("suggestions", []),
-        "error_summary": correction_result.get("summary", {"total_errors": 0}),
+        "errors": feedback["errors"],
+        "suggestions": feedback["suggestions"],
+        "error_summary": feedback["error_summary"],
         "score": result['score'],
         "predicted_class": result['predicted_class'],
         "confidence": result['confidence'],

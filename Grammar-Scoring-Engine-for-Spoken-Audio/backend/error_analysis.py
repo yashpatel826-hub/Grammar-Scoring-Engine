@@ -4,12 +4,15 @@ Error detection, classification, and explanation for grammar corrections.
 
 from __future__ import annotations
 
+import difflib
 import re
 from typing import Any, Dict, List, Tuple
 
 
 class ErrorAnalyzer:
     """Analyzes differences between original and corrected text."""
+
+    MAX_REPORTED_ERRORS = 25
 
     # Common articles
     ARTICLES = {"a", "an", "the"}
@@ -147,59 +150,94 @@ class ErrorAnalyzer:
         errors: List[Dict[str, Any]] = []
         seen_pairs = set()
 
-        left_tokens, right_tokens = cls._lcs_diff(original_tokens, corrected_tokens)
+        matcher = difflib.SequenceMatcher(a=original_tokens, b=corrected_tokens, autojunk=False)
 
-        i, j = 0, 0
-        while i < len(left_tokens) and j < len(right_tokens):
-            if left_tokens[i] == right_tokens[j]:
-                i += 1
-                j += 1
-            else:
-                error_type, explanation = cls._classify_error(left_tokens[i], right_tokens[j])
-                pair = (left_tokens[i], right_tokens[j], error_type)
+        for tag, i1, i2, j1, j2 in matcher.get_opcodes():
+            if tag == "equal":
+                continue
 
-                if pair not in seen_pairs:
+            if tag == "replace":
+                left_span = original_tokens[i1:i2]
+                right_span = corrected_tokens[j1:j2]
+                pair_count = min(len(left_span), len(right_span))
+
+                for k in range(pair_count):
+                    orig_tok = left_span[k]
+                    corr_tok = right_span[k]
+                    error_type, explanation = cls._classify_error(orig_tok, corr_tok)
+                    pair = (orig_tok, corr_tok, error_type)
+                    if pair in seen_pairs:
+                        continue
                     seen_pairs.add(pair)
-                    errors.append({
-                        "original": left_tokens[i],
-                        "corrected": right_tokens[j],
-                        "type": error_type,
-                        "explanation": explanation,
-                    })
-                i += 1
-                j += 1
+                    errors.append(
+                        {
+                            "original": orig_tok,
+                            "corrected": corr_tok,
+                            "type": error_type,
+                            "explanation": explanation,
+                        }
+                    )
 
-        i_remain = i
-        while i_remain < len(left_tokens):
-            error_type = "extra_word"
-            explanation = f"Unnecessary word '{left_tokens[i_remain]}' removed."
-            pair = (left_tokens[i_remain], None, error_type)
+                for orig_tok in left_span[pair_count:]:
+                    pair = (orig_tok, None, "extra_word")
+                    if pair in seen_pairs:
+                        continue
+                    seen_pairs.add(pair)
+                    errors.append(
+                        {
+                            "original": orig_tok,
+                            "corrected": None,
+                            "type": "extra_word",
+                            "explanation": f"Unnecessary word '{orig_tok}' removed.",
+                        }
+                    )
 
-            if pair not in seen_pairs:
-                seen_pairs.add(pair)
-                errors.append({
-                    "original": left_tokens[i_remain],
-                    "corrected": None,
-                    "type": error_type,
-                    "explanation": explanation,
-                })
-            i_remain += 1
+                for corr_tok in right_span[pair_count:]:
+                    pair = (None, corr_tok, "missing_word")
+                    if pair in seen_pairs:
+                        continue
+                    seen_pairs.add(pair)
+                    errors.append(
+                        {
+                            "original": None,
+                            "corrected": corr_tok,
+                            "type": "missing_word",
+                            "explanation": f"Missing word '{corr_tok}' added.",
+                        }
+                    )
 
-        j_remain = j
-        while j_remain < len(right_tokens):
-            error_type = "missing_word"
-            explanation = f"Missing word '{right_tokens[j_remain]}' added."
-            pair = (None, right_tokens[j_remain], error_type)
+            elif tag == "delete":
+                for orig_tok in original_tokens[i1:i2]:
+                    pair = (orig_tok, None, "extra_word")
+                    if pair in seen_pairs:
+                        continue
+                    seen_pairs.add(pair)
+                    errors.append(
+                        {
+                            "original": orig_tok,
+                            "corrected": None,
+                            "type": "extra_word",
+                            "explanation": f"Unnecessary word '{orig_tok}' removed.",
+                        }
+                    )
 
-            if pair not in seen_pairs:
-                seen_pairs.add(pair)
-                errors.append({
-                    "original": None,
-                    "corrected": right_tokens[j_remain],
-                    "type": error_type,
-                    "explanation": explanation,
-                })
-            j_remain += 1
+            elif tag == "insert":
+                for corr_tok in corrected_tokens[j1:j2]:
+                    pair = (None, corr_tok, "missing_word")
+                    if pair in seen_pairs:
+                        continue
+                    seen_pairs.add(pair)
+                    errors.append(
+                        {
+                            "original": None,
+                            "corrected": corr_tok,
+                            "type": "missing_word",
+                            "explanation": f"Missing word '{corr_tok}' added.",
+                        }
+                    )
+
+        if len(errors) > cls.MAX_REPORTED_ERRORS:
+            return errors[: cls.MAX_REPORTED_ERRORS]
 
         return errors
 
