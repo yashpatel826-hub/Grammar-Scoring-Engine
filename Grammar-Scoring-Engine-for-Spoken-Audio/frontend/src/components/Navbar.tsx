@@ -39,8 +39,8 @@ const Navbar = () => {
               <Mic className="w-4.5 h-4.5 text-primary-foreground" />
             </div>
             <span className="text-base font-bold tracking-tight">
-              <span className="gradient-text">Grammar</span>
-              <span className="text-foreground ml-0.5">AI</span>
+              <span className="text-foreground">SpeakScore</span>
+              <span className="gradient-text ml-0.5">AI</span>
             </span>
           </Link>
 

@@ -20,8 +20,8 @@ const Footer = () => {
                 <Mic className="w-5 h-5 text-primary-foreground" />
               </div>
               <span className="text-xl font-bold">
-                <span className="gradient-text">Grammar</span>
-                <span className="text-foreground">AI</span>
+                <span className="text-foreground">SpeakScore</span>
+                <span className="gradient-text ml-0.5">AI</span>
               </span>
             </Link>
             <p className="text-muted-foreground text-sm max-w-sm mb-6">
