@@ -508,13 +508,13 @@ const UploadPage = () => {
               onDragOver={handleDragOver}
               onDragLeave={handleDragLeave}
               onDrop={handleDrop}
-              className={`relative rounded-2xl border-2 border-dashed transition-all duration-300 bg-card/30 ${
+              className={`relative rounded-xl border-2 border-dashed transition-all duration-300 bg-white dark:bg-slate-800 ${
                 isDragging
-                  ? "border-primary bg-primary/5"
+                  ? "border-blue-400 bg-blue-50 dark:bg-blue-900/20"
                   : file
-                  ? "border-success/50"
-                  : "border-border/50 hover:border-primary/40"
-              }`}
+                  ? "border-green-300 dark:border-green-600"
+                  : "border-slate-300 dark:border-slate-600 hover:border-blue-400 dark:hover:border-blue-500"
+              } shadow-sm hover:shadow-md`}
             >
               <AnimatePresence mode="wait">
                 {!file ? (
@@ -525,38 +525,38 @@ const UploadPage = () => {
                     exit={{ opacity: 0 }}
                     className="p-12 lg:p-16 text-center"
                   >
-                    <div className="w-16 h-16 mx-auto mb-6 rounded-full bg-gradient-to-br from-primary/15 to-secondary/20 flex items-center justify-center">
-                      <Upload className={`w-7 h-7 ${isDragging ? "text-primary" : "text-primary/70"}`} />
+                    <div className="w-20 h-20 mx-auto mb-8 rounded-2xl bg-gradient-to-br from-blue-100 to-indigo-100 dark:from-blue-900/50 dark:to-indigo-900/50 flex items-center justify-center border border-blue-200 dark:border-blue-800">
+                      <Upload className={`w-8 h-8 ${isDragging ? "text-blue-600" : "text-blue-500 dark:text-blue-400"}`} />
                     </div>
 
-                    <h3 className="text-lg font-semibold text-foreground mb-2">
-                      Drop your audio file here
+                    <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-3">
+                      Upload Your Audio File
                     </h3>
-                    <p className="text-sm text-muted-foreground mb-6">
-                      or click to browse
+                    <p className="text-slate-600 dark:text-slate-300 mb-8 text-lg">
+                      Drag and drop your audio file here, or click to browse
                     </p>
 
                     {mode === "upload" && (
-                      <div className="mb-6 rounded-xl border border-border/40 bg-muted/20 p-4">
-                        <p className="text-xs uppercase tracking-wide text-muted-foreground mb-3">Record Like Voice Note</p>
-                        <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+                      <div className="mb-8 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 p-6">
+                        <p className="text-sm font-medium uppercase tracking-wide text-slate-600 dark:text-slate-400 mb-4">Record Live Audio</p>
+                        <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
                           {!isRecording ? (
                             <Button
                               type="button"
                               onClick={handleStartRecording}
                               variant="outline"
-                              className="rounded-full border-primary/40 text-primary hover:bg-primary/10"
+                              className="rounded-lg border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 px-6 py-3"
                               disabled={isAnalyzing || isRunningDemo || isFinalizingRecording}
                             >
                               <Mic className="w-4 h-4 mr-2" />
                               Start Recording
                             </Button>
                           ) : (
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-3">
                               <Button
                                 type="button"
                                 onClick={handleStopRecording}
-                                className="rounded-full bg-destructive text-destructive-foreground hover:opacity-90"
+                                className="rounded-lg bg-red-600 text-white hover:bg-red-700 px-6 py-3"
                                 disabled={isFinalizingRecording}
                               >
                                 <Square className="w-4 h-4 mr-2" />
@@ -566,7 +566,7 @@ const UploadPage = () => {
                                 type="button"
                                 onClick={handleCancelRecording}
                                 variant="outline"
-                                className="rounded-full border-border/60"
+                                className="rounded-lg border-slate-300 dark:border-slate-600 px-6 py-3"
                                 disabled={isFinalizingRecording}
                               >
                                 Cancel
@@ -574,38 +574,38 @@ const UploadPage = () => {
                             </div>
                           )}
 
-                            <div className="text-sm font-medium text-foreground w-full max-w-[200px] flex items-center justify-center">
+                            <div className="text-sm font-medium text-slate-600 dark:text-slate-400 w-full max-w-[200px] flex items-center justify-center">
                               {isRecording ? (
-                                <div className="flex flex-col items-center gap-2 w-full">
-                                  <span className="inline-flex items-center gap-2 text-destructive">
-                                    <span className="w-2 h-2 rounded-full bg-destructive animate-pulse" />
+                                <div className="flex flex-col items-center gap-3 w-full">
+                                  <span className="inline-flex items-center gap-2 text-red-600">
+                                    <span className="w-2 h-2 rounded-full bg-red-600 animate-pulse" />
                                     Recording {formatSeconds(recordingSeconds)}
                                   </span>
                                   {/* Volume Meter */}
-                                  <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
+                                  <div className="w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
                                     <motion.div 
-                                      className="h-full bg-gradient-to-r from-primary to-destructive"
+                                      className="h-full bg-gradient-to-r from-blue-500 to-indigo-500"
                                       animate={{ width: `${audioLevel}%` }}
                                       transition={{ type: 'spring', bounce: 0, duration: 0.1 }}
                                     />
                                   </div>
                                   {audioLevel < 2 && recordingSeconds > 1 && (
-                                    <span className="text-[10px] text-destructive tracking-tight">No mic audio detected!</span>
+                                    <span className="text-xs text-red-600 tracking-tight">No audio detected!</span>
                                   )}
                                 </div>
                             ) : isFinalizingRecording ? (
-                              <span className="inline-flex items-center gap-2 text-muted-foreground">
+                              <span className="inline-flex items-center gap-2 text-slate-600 dark:text-slate-400">
                                 <Loader2 className="w-4 h-4 animate-spin" />
                                 Saving recording...
                               </span>
                             ) : (
-                              <span className="text-muted-foreground">Tap record, speak, then stop to analyze.</span>
+                              <span className="text-slate-500 dark:text-slate-500">Tap record, speak clearly, then stop to analyze.</span>
                             )}
                           </div>
                         </div>
 
                         {errorMessage && (
-                          <p className="text-sm text-destructive mt-4 text-center">{errorMessage}</p>
+                          <p className="text-sm text-red-600 mt-4 text-center">{errorMessage}</p>
                         )}
                       </div>
                     )}
@@ -620,15 +620,15 @@ const UploadPage = () => {
                     <label htmlFor="audio-upload">
                       <Button
                         variant="outline"
-                        className="cursor-pointer rounded-full border-border/60 hover:bg-muted/30"
+                        className="cursor-pointer rounded-lg border-slate-300 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-700 px-6 py-3"
                         asChild
                       >
                         <span>Browse Files</span>
                       </Button>
                     </label>
 
-                    <p className="text-xs text-muted-foreground mt-6">
-                      Supports WAV, MP3, M4A, OGG, FLAC, and browser voice-note recordings (WEBM/OGG)
+                    <p className="text-sm text-slate-500 dark:text-slate-400 mt-6">
+                      Supports WAV, MP3, M4A, OGG, FLAC, and browser voice recordings
                     </p>
                   </motion.div>
                 ) : (
@@ -640,34 +640,34 @@ const UploadPage = () => {
                     className="p-8 lg:p-12"
                   >
                     <div className="flex items-center gap-4 mb-6">
-                      <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center">
-                        <FileAudio className="w-7 h-7 text-primary-foreground" />
+                      <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-blue-100 to-indigo-100 dark:from-blue-900/50 dark:to-indigo-900/50 flex items-center justify-center border border-blue-200 dark:border-blue-800">
+                        <FileAudio className="w-8 h-8 text-blue-600 dark:text-blue-400" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <h4 className="text-base font-semibold text-foreground truncate">{file.name}</h4>
-                        <p className="text-sm text-muted-foreground">{formatFileSize(file.size)}</p>
-                        {audioBlob && <p className="text-xs text-muted-foreground">Recorded via microphone</p>}
+                        <h4 className="text-lg font-semibold text-slate-900 dark:text-white truncate">{file.name}</h4>
+                        <p className="text-sm text-slate-600 dark:text-slate-400">{formatFileSize(file.size)}</p>
+                        {audioBlob && <p className="text-xs text-slate-500 dark:text-slate-500">Recorded via microphone</p>}
                       </div>
-                      <button type="button" onClick={handleRemoveFile} className="p-2 rounded-lg hover:bg-destructive/20 text-muted-foreground hover:text-destructive transition-colors">
+                      <button type="button" onClick={handleRemoveFile} className="p-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-slate-400 hover:text-red-600 dark:hover:text-red-400 transition-colors">
                         <X className="w-5 h-5" />
                       </button>
                     </div>
 
-                    <div className="rounded-xl p-4 border border-border/40 bg-muted/20 mb-6">
+                    <div className="rounded-xl p-6 border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 mb-6">
                       <audio ref={audioRef} src={audioPreviewUrl ?? undefined} onEnded={() => setIsPlaying(false)} preload="auto" className="hidden" />
                       <div className="flex items-center gap-4">
-                        <button type="button" onClick={togglePlayback} className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center hover:opacity-90 transition-opacity">
-                          {isPlaying ? <Pause className="w-4 h-4 text-primary-foreground" /> : <Play className="w-4 h-4 text-primary-foreground ml-0.5" />}
+                        <button type="button" onClick={togglePlayback} className="w-12 h-12 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 flex items-center justify-center hover:opacity-90 transition-opacity shadow-sm">
+                          {isPlaying ? <Pause className="w-5 h-5 text-white ml-0.5" /> : <Play className="w-5 h-5 text-white ml-0.5" />}
                         </button>
                         <div className="flex-1">
-                          <div className="h-1.5 bg-muted rounded-full overflow-hidden">
-                            <motion.div initial={{ width: 0 }} animate={{ width: isPlaying ? "100%" : "0%" }} transition={{ duration: 10, ease: "linear" }} className="h-full bg-gradient-to-r from-primary to-secondary" />
+                          <div className="h-2 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+                            <motion.div initial={{ width: 0 }} animate={{ width: isPlaying ? "100%" : "0%" }} transition={{ duration: 10, ease: "linear" }} className="h-full bg-gradient-to-r from-blue-500 to-indigo-500" />
                           </div>
                         </div>
                       </div>
                     </div>
 
-                    <Button onClick={handleAnalyze} disabled={isAnalyzing || isRunningDemo || !file} className="w-full bg-gradient-to-r from-primary to-secondary text-primary-foreground hover:opacity-90 h-12 rounded-xl shadow-lg shadow-primary/20">
+                    <Button onClick={handleAnalyze} disabled={isAnalyzing || isRunningDemo || !file} className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:opacity-90 h-12 rounded-lg shadow-lg shadow-blue-500/25">
                       {isAnalyzing ? (
                         <><Loader2 className="w-5 h-5 mr-2 animate-spin" />Analyzing Speech...</>
                       ) : (
@@ -676,7 +676,7 @@ const UploadPage = () => {
                     </Button>
 
                     {errorMessage && (
-                      <p className="text-sm text-destructive mt-4 text-center">{errorMessage}</p>
+                      <p className="text-sm text-red-600 mt-4 text-center">{errorMessage}</p>
                     )}
                   </motion.div>
                 )}
@@ -686,22 +686,22 @@ const UploadPage = () => {
             {/* Analyzing overlay */}
             <AnimatePresence>
               {(isAnalyzing || isRunningDemo) && (
-                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
-                  <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="rounded-2xl p-12 text-center border border-border/40 bg-card max-w-sm mx-4">
-                    <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center animate-pulse">
-                      <Loader2 className="w-10 h-10 text-primary animate-spin" />
+                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+                  <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="rounded-xl p-8 text-center border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 max-w-sm mx-4 shadow-xl">
+                    <div className="w-16 h-16 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-blue-100 to-indigo-100 dark:from-blue-900/50 dark:to-indigo-900/50 flex items-center justify-center border border-blue-200 dark:border-blue-800">
+                      <Loader2 className="w-8 h-8 text-blue-600 dark:text-blue-400 animate-spin" />
                     </div>
-                    <h3 className="text-lg font-semibold text-foreground mb-2">
+                    <h3 className="text-xl font-semibold text-slate-900 dark:text-white mb-2">
                       {isRunningDemo ? "Running Demo..." : "AI Analyzing..."}
                     </h3>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-sm text-slate-600 dark:text-slate-300">
                       {isRunningDemo
                         ? "Scoring sample content to show how the system works"
                         : ANALYZE_STEPS[analysisStepIndex]}
                     </p>
                     <div className="mt-6 flex justify-center gap-1">
                       {[0, 1, 2].map((i) => (
-                        <motion.div key={i} animate={{ scale: [1, 1.3, 1] }} transition={{ repeat: Infinity, duration: 0.6, delay: i * 0.2 }} className="w-2 h-2 rounded-full bg-primary" />
+                        <motion.div key={i} animate={{ scale: [1, 1.3, 1] }} transition={{ repeat: Infinity, duration: 0.6, delay: i * 0.2 }} className="w-2 h-2 rounded-full bg-blue-500" />
                       ))}
                     </div>
                   </motion.div>

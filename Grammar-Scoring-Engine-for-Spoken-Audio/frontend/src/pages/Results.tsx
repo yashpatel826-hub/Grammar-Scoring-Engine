@@ -1,3 +1,5 @@
+// Fix JSX structure errors and mismatched closing tags.
+// Do not change functionality.
 import { Link, Navigate, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Download, RefreshCw, AlertTriangle } from "lucide-react";
@@ -102,17 +104,17 @@ const ScoreCircle = ({ score, maxScore }: { score: number; maxScore: number }) =
   const offset = circumference - (percentage / 100) * circumference;
 
   return (
-    <div className="relative w-44 h-44 mx-auto">
+    <div className="relative w-48 h-48 mx-auto">
       <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
-        <circle cx="50" cy="50" r="45" fill="none" stroke="currentColor" strokeWidth="8" className="text-muted/20" />
+        <circle cx="50" cy="50" r="45" fill="none" stroke="currentColor" strokeWidth="6" className="text-slate-200 dark:text-slate-700" />
         <defs>
           <linearGradient id="scoreGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" stopColor="hsl(185 100% 50%)" />
-            <stop offset="100%" stopColor="hsl(265 90% 60%)" />
+            <stop offset="0%" stopColor="hsl(217 91% 60%)" />
+            <stop offset="100%" stopColor="hsl(221 83% 53%)" />
           </linearGradient>
         </defs>
         <motion.circle
-          cx="50" cy="50" r="45" fill="none" strokeWidth="8" strokeLinecap="round"
+          cx="50" cy="50" r="45" fill="none" strokeWidth="6" strokeLinecap="round"
           stroke="url(#scoreGrad)"
           initial={{ strokeDasharray: circumference, strokeDashoffset: circumference }}
           animate={{ strokeDashoffset: offset }}
@@ -120,9 +122,10 @@ const ScoreCircle = ({ score, maxScore }: { score: number; maxScore: number }) =
         />
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.8 }} className="text-4xl font-bold text-foreground">
+        <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.8 }} className="text-4xl font-bold text-slate-900 dark:text-white">
           {score.toFixed(2)}
         </motion.span>
+        <span className="text-sm text-slate-600 dark:text-slate-400 mt-1">/ 5.00</span>
       </div>
     </div>
   );
@@ -144,11 +147,11 @@ const ResultsPage = () => {
 
   const getLabelColor = (label: string) => {
     switch (label.toLowerCase()) {
-      case "poor": return "bg-destructive/20 text-destructive";
-      case "average": return "bg-warning/20 text-warning";
-      case "good": return "bg-primary/20 text-primary";
-      case "excellent": return "bg-success/20 text-success";
-      default: return "bg-muted text-muted-foreground";
+      case "poor": return "bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-200";
+      case "average": return "bg-amber-100 text-amber-800 dark:bg-amber-900/50 dark:text-amber-200";
+      case "good": return "bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-200";
+      case "excellent": return "bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-200";
+      default: return "bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-200";
     }
   };
 
@@ -209,74 +212,73 @@ const ResultsPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="relative min-h-screen bg-slate-50 dark:bg-slate-900">
+      <div className="absolute inset-0 grid-pattern opacity-30" />
       <Navbar />
 
-      <main className="relative pt-24 lg:pt-28 pb-20">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-          {/* Header */}
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-8 gap-4">
-            <div>
-              <h1 className="text-3xl sm:text-4xl font-bold">
-                <span className="text-foreground">Analysis </span>
-                <span className="gradient-text">Results</span>
-              </h1>
-              <p className="text-muted-foreground mt-1">
-                {analysis.filename} • {analysis.duration.toFixed(2)}s • processed in {analysis.processing_time.toFixed(2)}s
-              </p>
-            </div>
-            <Button
-              onClick={handleDownloadReport}
-              className="bg-gradient-to-r from-primary to-secondary text-primary-foreground hover:opacity-90 rounded-full px-6"
-            >
-              <Download className="w-4 h-4 mr-2" />
-              Download Report
-            </Button>
-          </motion.div>
-
-          {/* Score Card - full width */}
-          <div className="mb-8">
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="rounded-2xl border border-border/40 bg-card/50 p-8 max-w-sm mx-auto">
-              <h3 className="text-lg font-semibold text-foreground mb-6 text-center">Overall Grammar Score</h3>
-              <ScoreCircle score={analysis.score} maxScore={5} />
-              <div className="text-center mt-5">
-                <span className={`inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-sm font-medium ${getLabelColor(performanceLabel)}`}>
-                  <AlertTriangle className="w-3.5 h-3.5" />
-                  {performanceLabel}
-                </span>
-                <p className="text-sm text-muted-foreground mt-2">Out of 5.0</p>
-              </div>
-            </motion.div>
+      <main className="container mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-12 relative z-10">
+        <div>
+        {/* Header */}
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-8 gap-4">
+          <div>
+            <h1 className="text-3xl font-bold text-slate-900 dark:text-white">
+              Analysis <span className="gradient-text">Results</span>
+            </h1>
+            <p className="text-slate-600 dark:text-slate-300 mt-1">
+              {analysis.filename} • {analysis.duration.toFixed(2)}s • processed in {analysis.processing_time.toFixed(2)}s
+            </p>
           </div>
+          <Button
+            onClick={handleDownloadReport}
+            className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:opacity-90 rounded-lg px-6 shadow-sm"
+          >
+            <Download className="w-4 h-4 mr-2" />
+            Download Report
+          </Button>
+        </motion.div>
+
+        {/* Score Card */}
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-lg p-8 max-w-sm mx-auto mb-8">
+          <h3 className="text-xl font-semibold text-slate-900 dark:text-white mb-6 text-center">Overall Grammar Score</h3>
+          <ScoreCircle score={analysis.score} maxScore={5} />
+          <div className="text-center mt-5">
+            <span className={`inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-sm font-medium ${getLabelColor(performanceLabel)}`}>
+              <AlertTriangle className="w-3.5 h-3.5" />
+              {performanceLabel}
+            </span>
+            <p className="text-sm text-slate-600 dark:text-slate-400 mt-2">Out of 5.0</p>
+          </div>
+        </motion.div>
 
           {/* Full Transcript */}
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="rounded-2xl border border-border/40 bg-card/50 p-8">
-            <h3 className="text-lg font-semibold text-foreground mb-4">Transcript</h3>
-            <p className="text-sm text-muted-foreground leading-relaxed">{analysis.transcript}</p>
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm p-8 mb-6">
+            <h3 className="text-xl font-semibold text-slate-900 dark:text-white mb-4">Original Transcript</h3>
+            <p className="text-slate-700 dark:text-slate-300 leading-relaxed">{analysis.transcript}</p>
           </motion.div>
 
           {analysis.correction_available && (
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }} className="rounded-2xl border border-border/40 bg-card/50 p-8 mt-6">
-              <h3 className="text-lg font-semibold text-foreground mb-4">Grammer Correction</h3>
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }} className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm p-8 mb-6">
+              <h3 className="text-xl font-semibold text-slate-900 dark:text-white mb-4">Grammar Corrections</h3>
 
               {hasCorrection ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-4">
-                    <h4 className="text-sm font-semibold text-destructive mb-2">Wrong</h4>
-                    <p className="text-sm leading-relaxed break-words">{renderDiffTokens(diffView.leftTokens, "left")}</p>
+                  <div className="rounded-xl border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 p-6">
+                    <h4 className="text-base font-semibold text-red-700 dark:text-red-400 mb-3">Original Text</h4>
+                    <p className="text-sm leading-relaxed break-words text-slate-700 dark:text-slate-300">{renderDiffTokens(diffView.leftTokens, "left")}</p>
                   </div>
 
-                  <div className="rounded-xl border border-success/30 bg-success/5 p-4">
-                    <h4 className="text-sm font-semibold text-success mb-2">Correct</h4>
-                    <p className="text-sm leading-relaxed break-words">{renderDiffTokens(diffView.rightTokens, "right")}</p>
+                  <div className="rounded-xl border border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/20 p-6">
+                    <h4 className="text-base font-semibold text-green-700 dark:text-green-400 mb-3">Corrected Text</h4>
+                    <p className="text-sm leading-relaxed break-words text-slate-700 dark:text-slate-300">{renderDiffTokens(diffView.rightTokens, "right")}</p>
                   </div>
                 </div>
               ) : (
-                <p className="text-sm text-muted-foreground leading-relaxed">No grammar changes were suggested for this transcript.</p>
+                <p className="text-slate-600 dark:text-slate-400 leading-relaxed">No grammar changes were suggested for this transcript.</p>
               )}
 
               {analysis.correction_error && (
-                <p className="text-xs text-warning mt-3">
+                <p className="text-sm text-amber-600 dark:text-amber-400 mt-4 p-3 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-200 dark:border-amber-800">
+                  <AlertTriangle className="w-4 h-4 inline mr-2" />
                   Correction warning: {analysis.correction_error}
                 </p>
               )}
@@ -285,28 +287,28 @@ const ResultsPage = () => {
 
           {/* Error Summary Section */}
           {analysis.error_summary && analysis.error_summary.total_errors > 0 && (
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }} className="rounded-2xl border border-border/40 bg-card/50 p-8 mt-6">
-              <div className="space-y-4">
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }} className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm p-8 mb-6">
+              <div className="space-y-6">
                 {/* Error Count */}
-                <div className="rounded-lg border border-warning/30 bg-warning/5 p-4">
-                  <p className="text-sm font-semibold text-warning">
+                <div className="rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20 p-6">
+                  <p className="text-lg font-semibold text-amber-800 dark:text-amber-200">
                     {analysis.error_summary.total_errors} Grammar Issue{analysis.error_summary.total_errors !== 1 ? 's' : ''} Found
                   </p>
                 </div>
 
                 {/* Improvement Suggestions */}
                 {analysis.suggestions && analysis.suggestions.length > 0 && (
-                  <div className="space-y-2">
-                    <h4 className="text-sm font-semibold text-foreground mb-3">💡 Improvement Suggestions</h4>
-                    <div className="space-y-2">
+                  <div className="space-y-4">
+                    <h4 className="text-lg font-semibold text-slate-900 dark:text-white">💡 Improvement Suggestions</h4>
+                    <div className="space-y-3">
                       {analysis.suggestions.map((suggestion, idx) => (
-                        <div key={idx} className="flex gap-3 p-3 rounded-lg bg-primary/5 border border-primary/20">
+                        <div key={idx} className="flex gap-4 p-4 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
                           <div className="flex-shrink-0">
-                            <div className="flex items-center justify-center h-5 w-5 rounded-full bg-primary/20 mt-0.5">
-                              <span className="text-xs text-primary font-semibold">{idx + 1}</span>
+                            <div className="flex items-center justify-center h-6 w-6 rounded-full bg-blue-100 dark:bg-blue-800 text-blue-600 dark:text-blue-400 text-sm font-semibold">
+                              {idx + 1}
                             </div>
                           </div>
-                          <p className="text-sm text-muted-foreground leading-relaxed">{suggestion}</p>
+                          <p className="text-slate-700 dark:text-slate-300 leading-relaxed">{suggestion}</p>
                         </div>
                       ))}
                     </div>
@@ -315,28 +317,27 @@ const ResultsPage = () => {
 
                 {/* Error Details */}
                 {analysis.errors && analysis.errors.length > 0 && (
-                  <div className="space-y-2">
-                    <h4 className="text-sm font-semibold text-foreground mb-3">🔍 Detailed Error Analysis</h4>
-                    <div className="space-y-2">
+                  <div className="space-y-4">
+                    <h4 className="text-lg font-semibold text-slate-900 dark:text-white">🔍 Detailed Error Analysis</h4>
+                    <div className="space-y-3">
                       {analysis.errors.map((error, idx) => (
-                        <div key={idx} className="p-3 rounded-lg bg-destructive/5 border border-destructive/20">
+                        <div key={idx} className="p-4 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800">
                           <div className="flex items-start gap-3">
                             <div className="flex-shrink-0">
-                              <span className="inline-block h-5 w-5 rounded-full bg-destructive/20 flex items-center justify-center mt-0.5">
-                                <span className="text-xs text-destructive font-semibold">!</span>
+                              <span className="inline-block h-6 w-6 rounded-full bg-red-100 dark:bg-red-800 flex items-center justify-center">
+                                <span className="text-sm text-red-600 dark:text-red-400 font-semibold">!</span>
                               </span>
                             </div>
                             <div className="flex-grow">
-                              <p className="text-sm font-medium text-foreground">
+                              <p className="text-base font-medium text-slate-900 dark:text-white mb-1">
                                 {error.type ? `${error.type.charAt(0).toUpperCase() + error.type.slice(1).replace(/_/g, ' ')}` : 'Grammar Error'}
                               </p>
                               {error.explanation && (
-                                <p className="text-xs text-muted-foreground mt-1">{error.explanation}</p>
+                                <p className="text-sm text-slate-600 dark:text-slate-400 mb-2">{error.explanation}</p>
                               )}
                               {error.original && error.corrected && (
-                                <p className="text-xs text-muted-foreground mt-1">
-                                  Changed from "<span className="text-destructive font-medium">{error.original}</span>" to "
-                                  <span className="text-success font-medium">{error.corrected}</span>"
+                                <p className="text-sm text-slate-600 dark:text-slate-400">
+                                  Changed from <span className="font-medium text-red-600 dark:text-red-400">"{error.original}"</span> to <span className="font-medium text-green-600 dark:text-green-400">"{error.corrected}"</span>
                                 </p>
                               )}
                             </div>
@@ -351,9 +352,9 @@ const ResultsPage = () => {
           )}
 
           {/* Actions */}
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }} className="flex justify-center gap-4 mt-10">
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.6 }} className="flex justify-center gap-4 mt-8">
             <Link to="/upload">
-              <Button variant="outline" className="rounded-full border-border/60 px-6">
+              <Button variant="outline" className="rounded-lg border-slate-300 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-700 px-6 py-3">
                 <RefreshCw className="w-4 h-4 mr-2" />
                 Analyze Another
               </Button>
