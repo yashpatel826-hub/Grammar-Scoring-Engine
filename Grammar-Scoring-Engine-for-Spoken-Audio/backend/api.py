@@ -250,10 +250,10 @@ async def predict_grammar_score(file: UploadFile = File(...)):
     start_time = time.time()
     
     # Validate file type
-    if not file.filename.lower().endswith(('.wav', '.mp3', '.m4a', '.ogg', '.flac')):
+    if not file.filename.lower().endswith(('.wav', '.mp3', '.m4a', '.ogg', '.flac', '.webm')):
         raise HTTPException(
             status_code=400,
-            detail="Invalid file type. Supported formats: WAV, MP3, M4A, OGG, FLAC"
+            detail="Invalid file type. Supported formats: WAV, MP3, M4A, OGG, FLAC, WEBM"
         )
     
     # Save uploaded file
@@ -292,6 +292,13 @@ async def predict_grammar_score(file: UploadFile = File(...)):
             raise HTTPException(
                 status_code=400,
                 detail="Could not detect speech in audio. Please ensure the audio contains clear speech."
+            )
+
+        word_count = len([w for w in transcript.split() if w])
+        if word_count < 2:
+            raise HTTPException(
+                status_code=400,
+                detail="Detected only very short audio. Please speak a full sentence (at least 2-3 words) and try again."
             )
         
         # Score transcript
@@ -352,10 +359,10 @@ async def transcribe_audio(file: UploadFile = File(...)):
     Returns transcript only
     """
     # Validate file type
-    if not file.filename.lower().endswith(('.wav', '.mp3', '.m4a', '.ogg', '.flac')):
+    if not file.filename.lower().endswith(('.wav', '.mp3', '.m4a', '.ogg', '.flac', '.webm')):
         raise HTTPException(
             status_code=400,
-            detail="Invalid file type. Supported formats: WAV, MP3, M4A, OGG, FLAC"
+            detail="Invalid file type. Supported formats: WAV, MP3, M4A, OGG, FLAC, WEBM"
         )
     
     # Save uploaded file

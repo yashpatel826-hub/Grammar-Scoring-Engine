@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 from typing import Dict, Optional, List
 import hashlib
+import numpy as np
 import whisper
 
 from config import (
@@ -68,6 +69,67 @@ class TranscriptionService:
         """Save transcription to cache"""
         with open(cache_path, 'w', encoding='utf-8') as f:
             json.dump(data, f, ensure_ascii=False, indent=2)
+
+    def _transcribe_with_whisper(self, audio_input) -> Dict:
+        """Run whisper transcription with conservative settings to reduce hallucinations."""
+        return self.model.transcribe(
+            audio_input,
+            language="en",
+            verbose=False,
+            temperature=0.0,
+            condition_on_previous_text=False,
+            no_speech_threshold=0.45,
+            logprob_threshold=-1.0,
+            compression_ratio_threshold=2.4,
+            fp16=(self.device == "cuda")
+        )
+
+    def _try_transcription_variants(self, audio: np.ndarray, audio_path: Path) -> Dict:
+        """Try progressively boosted audio variants to recover quiet speech."""
+        attempts: List[np.ndarray] = [audio]
+
+        peak = float(np.max(np.abs(audio))) if len(audio) else 0.0
+        if peak > 0:
+            attempts.append(np.clip(audio * min(3.0, 0.95 / peak), -1.0, 1.0))
+            attempts.append(np.clip(audio * min(8.0, 0.95 / peak), -1.0, 1.0))
+
+        best_result = {"text": "", "segments": []}
+
+        def _is_usable_text(text: str) -> bool:
+            words = [w for w in text.strip().split() if w]
+            # Grammar scoring is sentence-based; single-word outputs are usually low-signal hallucinations.
+            return len(words) >= 2
+
+        for idx, candidate in enumerate(attempts):
+            try:
+                result = self._transcribe_with_whisper(candidate)
+                text = result.get("text", "").strip()
+                if _is_usable_text(text):
+                    print(f"Transcription succeeded on attempt {idx + 1}")
+                    return result
+
+                if text and len(text) > len(best_result.get("text", "")):
+                    best_result = result
+                elif len(result.get("segments", [])) > len(best_result.get("segments", [])):
+                    best_result = result
+            except Exception as e:
+                print(f"Transcription attempt {idx + 1} failed: {e}")
+
+        # Final fallback through file path (lets whisper/ffmpeg decode directly)
+        try:
+            fallback = self._transcribe_with_whisper(str(audio_path))
+            fallback_text = fallback.get("text", "").strip()
+            if _is_usable_text(fallback_text):
+                print("Transcription succeeded via file-path fallback")
+                return fallback
+            if fallback_text and len(fallback_text) > len(best_result.get("text", "")):
+                best_result = fallback
+            elif len(fallback.get("segments", [])) > len(best_result.get("segments", [])):
+                best_result = fallback
+        except Exception as e:
+            print(f"File-path fallback failed: {e}")
+
+        return best_result
     
     def transcribe(self, audio_path: str | Path, 
                    use_cache: bool = True,
@@ -92,38 +154,25 @@ class TranscriptionService:
             if cached:
                 return cached
         
-        # Load and preprocess audio properly for Whisper
+        # Load and preprocess audio for more reliable speech detection
         try:
-            import librosa
-            # Load audio at 16kHz mono (Whisper's requirement)
-            audio, sr = librosa.load(str(audio_path), sr=SAMPLE_RATE, mono=True)
-            print(f"Audio loaded: {len(audio)} samples at {sr}Hz")
+            audio, sr = preprocess_audio(audio_path, normalize=True, trim=True, limit=True)
+            print(f"Audio preprocessed: {len(audio)} samples at {sr}Hz")
         except Exception as e:
-            print(f"Error loading audio with librosa: {e}")
+            print(f"Error preprocessing audio: {e}")
             raise
-        
-        # Transcribe using openai-whisper with loaded audio
-        try:
-            result = self.model.transcribe(
-                audio,
-                language="en",
-                verbose=False
-            )
-        except Exception as e:
-            print(f"Error transcribing audio: {e}")
-            # Fallback: try with file path directly
-            result = self.model.transcribe(
-                str(audio_path),
-                language="en",
-                verbose=False
-            )
+
+        if len(audio) == 0:
+            result = {"text": "", "language": "en", "duration": 0, "segments": []}
+        else:
+            result = self._try_transcription_variants(audio, audio_path)
         
         # Format output to match expected structure
         formatted_result = {
             "text": result.get("text", "").strip(),
             "language": result.get("language", "en"),
             "language_probability": 0.95,
-            "duration": result.get("duration", 0),
+            "duration": result.get("duration", len(audio) / sr if sr else 0),
             "segments": [
                 {
                     "start": round(seg.get("start", 0), 2),
