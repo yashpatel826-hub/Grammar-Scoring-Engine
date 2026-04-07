@@ -4,6 +4,7 @@ Grammar correction service for transcript text.
 
 from __future__ import annotations
 
+import difflib
 import re
 from typing import Any, Dict, List
 
@@ -62,6 +63,49 @@ class GrammarCorrector:
 
         return chunks if chunks else [text]
 
+    @staticmethod
+    def _tokenize_words(text: str) -> List[str]:
+        return re.findall(r"[A-Za-z0-9']+", text.lower())
+
+    @classmethod
+    def _is_destructive_rewrite(cls, original: str, candidate: str) -> bool:
+        """Reject rewrites that remove too much lexical content from the original."""
+        original_tokens = cls._tokenize_words(original)
+        candidate_tokens = cls._tokenize_words(candidate)
+
+        if not original_tokens:
+            return False
+        if not candidate_tokens:
+            return True
+
+        length_ratio = len(candidate_tokens) / max(1, len(original_tokens))
+
+        # Grammar correction should not remove large parts of long text.
+        if len(original_tokens) >= 40 and length_ratio < 0.72:
+            return True
+
+        # Strong length shrink can indicate content dropping.
+        if len(original_tokens) >= 8 and len(candidate_tokens) < max(4, int(0.55 * len(original_tokens))):
+            return True
+
+        original_questions = original.count("?")
+        candidate_questions = candidate.count("?")
+        if original_questions >= 2 and (original_questions - candidate_questions) >= 2 and length_ratio < 0.85:
+            return True
+
+        original_vocab = set(original_tokens)
+        retained_ratio = len(original_vocab.intersection(candidate_tokens)) / max(1, len(original_vocab))
+
+        # Low overlap on sufficiently long chunks usually means a semantic rewrite/omission.
+        if len(original_tokens) >= 12 and retained_ratio < 0.62:
+            return True
+
+        seq_ratio = difflib.SequenceMatcher(a=original_tokens, b=candidate_tokens, autojunk=False).ratio()
+        if len(original_tokens) >= 12 and seq_ratio < 0.45:
+            return True
+
+        return False
+
     def correct_text(self, text: str) -> Dict[str, Any]:
         clean_text = text.strip()
         if not clean_text:
@@ -104,7 +148,10 @@ class GrammarCorrector:
                         early_stopping=True,
                     )
                 generated = self._tokenizer.decode(output_ids[0], skip_special_tokens=True).strip()
-                corrected_chunks.append(generated if generated else chunk)
+                if not generated or self._is_destructive_rewrite(chunk, generated):
+                    corrected_chunks.append(chunk)
+                else:
+                    corrected_chunks.append(generated)
 
             corrected_text = " ".join(corrected_chunks).strip()
             if not corrected_text:

@@ -29,6 +29,7 @@ from database import (
     is_db_available,
     save_analysis,
 )
+from analytics import router as analytics_router
 
 
 # Initialize FastAPI app
@@ -46,6 +47,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Register analytics router
+app.include_router(analytics_router)
 
 # Temporary upload directory
 UPLOAD_DIR = BASE_DIR / "uploads"
@@ -68,6 +72,38 @@ def get_services():
     if _corrector is None:
         _corrector = get_corrector()
     return _transcription_service, _scorer, _corrector
+
+
+def extract_error_breakdown(error_summary: Optional[Dict[str, Any]]) -> Dict[str, int]:
+    """
+    Extract error breakdown from error_summary dict.
+    Maps error types to categories for analytics.
+    """
+    breakdown = {
+        "articles": 0,
+        "tense": 0,
+        "preposition": 0,
+        "agreement": 0,
+        "other": 0
+    }
+    
+    if not error_summary or not isinstance(error_summary, dict):
+        return breakdown
+    
+    for error_type, count in error_summary.items():
+        if isinstance(count, int) and count > 0:
+            if error_type == "article_error":
+                breakdown["articles"] += count
+            elif error_type == "tense_error":
+                breakdown["tense"] += count
+            elif error_type == "preposition_error":
+                breakdown["preposition"] += count
+            elif error_type == "verb_agreement_error":
+                breakdown["agreement"] += count
+            elif error_type != "total_errors":
+                breakdown["other"] += count
+    
+    return breakdown
 
 
 def build_feedback_payload(score: float, correction_result: Dict[str, Any]) -> Dict[str, Any]:
@@ -218,7 +254,18 @@ async def analysis_history(email: str = Query(..., min_length=3), limit: int = Q
 
 @app.post("/api/analysis/history")
 async def store_analysis(payload: AnalysisSaveRequest):
-    result = save_analysis(payload.email, payload.analysis)
+    # Extract error breakdown from error_summary for analytics
+    error_summary = payload.analysis.get("error_summary", {})
+    error_breakdown = extract_error_breakdown(error_summary)
+    
+    # Add analytics fields to the analysis record
+    enriched_analysis = {
+        **payload.analysis,
+        "error_breakdown": error_breakdown,
+        "audio_duration_seconds": payload.analysis.get("duration", 0.0)
+    }
+    
+    result = save_analysis(payload.email, enriched_analysis)
     if not result["success"]:
         raise HTTPException(status_code=503, detail=result.get("error", "Failed to save analysis"))
     return {"success": True, "record": result["record"]}
