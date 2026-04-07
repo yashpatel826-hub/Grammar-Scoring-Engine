@@ -189,6 +189,51 @@ with open("audio.wav", "rb") as f:
 
 ---
 
+## Deployment
+
+The frontend is ready for Vercel deployment. The backend should be deployed on Render using the included Docker setup so the FastAPI app has `ffmpeg` and other audio dependencies available.
+
+### Deploy the frontend to Vercel
+
+1. Import the repository into Vercel.
+2. Set the Root Directory to `frontend`.
+3. Set the build command to `npm run build`.
+4. Set the output directory to `dist`.
+5. Add an environment variable named `VITE_API_BASE_URL` and point it to your deployed backend URL.
+6. Deploy.
+
+The frontend includes a `vercel.json` rewrite so client-side routes like `/dashboard` and `/results` resolve correctly on refresh.
+
+### Deploy the backend to Render
+
+1. Create a new Web Service in Render from this repository.
+2. Use the repository root and let Render detect `render.yaml`, or point it to the included Dockerfile.
+3. Set `MONGO_URI` to your MongoDB connection string.
+4. Keep `USE_CUDA=false` unless you are using a GPU-backed Render environment.
+5. Set `FRONTEND_BASE_URL` to your Vercel site URL.
+6. Deploy the service.
+
+The backend service uses `backend/Dockerfile`, which installs `ffmpeg` and `libsndfile` for audio processing and Whisper decoding.
+
+### Environment variables
+
+If your backend is deployed at `https://your-backend.example.com`, set:
+
+```text
+VITE_API_BASE_URL=https://your-backend.example.com
+```
+
+For Render, set the backend variables:
+
+```text
+MONGO_URI=<your-mongodb-connection-string>
+MONGO_DB_NAME=grammar_scoring
+USE_CUDA=false
+FRONTEND_BASE_URL=https://your-vercel-site.vercel.app
+```
+
+During local development, leaving `VITE_API_BASE_URL` empty continues to use the Vite dev proxy.
+
 ## � License
 
 This project is for educational purposes.

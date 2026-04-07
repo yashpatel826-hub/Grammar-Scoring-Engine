@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: grammar-scoring-engine-backend
+    env: docker
+    dockerfilePath: ./backend/Dockerfile
+    autoDeploy: true
+    healthCheckPath: /api/health
+    envVars:
+      - key: MONGO_URI
+        sync: false
+      - key: MONGO_DB_NAME
+        value: grammar_scoring
+      - key: USE_CUDA
+        value: "false"
+      - key: FRONTEND_BASE_URL
+        sync: false
